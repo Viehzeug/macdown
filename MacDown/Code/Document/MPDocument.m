@@ -632,8 +632,11 @@ static void (^MPGetPreviewLoadingCompletionHandler(MPDocument *doc))()
 
 - (BOOL)textView:(NSTextView *)textView doCommandBySelector:(SEL)commandSelector
 {
+
     if (commandSelector == @selector(insertTab:))
         return ![self textViewShouldInsertTab:textView];
+    else if (commandSelector == @selector(insertBacktab:))
+        return ![self textViewShouldInsertBacktab:textView];
     else if (commandSelector == @selector(insertNewline:))
         return ![self textViewShouldInsertNewline:textView];
     else if (commandSelector == @selector(deleteBackward:))
@@ -664,6 +667,36 @@ static void (^MPGetPreviewLoadingCompletionHandler(MPDocument *doc))()
 
 #pragma mark - Fake NSTextViewDelegate
 
+-(BOOL)shouldListRespondToTab:(NSTextView *)textView
+{
+    NSUInteger cur = textView.selectedRange.location;
+    NSUInteger start = [textView.string locationOfFirstNonWhitespaceCharacterInLineBefore:cur];
+    NSString *line = [textView.string substringFromIndex:start];
+    
+    NSRegularExpressionOptions op = NSRegularExpressionDotMatchesLineSeparators;
+    NSRegularExpression *regex =
+    [NSRegularExpression regularExpressionWithPattern:@"^\\s*(-|\\*|\\+|(\\d\\.))\\s*$"
+                                              options:op error:NULL];
+    NSTextCheckingResult *result =
+    [regex firstMatchInString:line options:0
+                        range:NSMakeRange(0, line.length)];
+    if (result)
+    {
+        return YES;
+    }    
+    return NO;
+}
+
+- (BOOL)textViewShouldInsertBacktab:(NSTextView *)textView
+{
+    //if we are currently in a list, right after the list symbol unindent
+    if ([self shouldListRespondToTab:textView])
+    {
+        [self unindent:nil];
+    }
+    return NO;
+}
+
 - (BOOL)textViewShouldInsertTab:(NSTextView *)textView
 {
     if (textView.selectedRange.length != 0)
@@ -675,6 +708,11 @@ static void (^MPGetPreviewLoadingCompletionHandler(MPDocument *doc))()
     {
         [textView insertSpacesForTab];
         return NO;
+    } else if ([self shouldListRespondToTab:textView])
+    {    //if we are currently in a list, right after the list symbol indent
+        [self indent:nil];
+        return NO;
+
     }
     return YES;
 }
