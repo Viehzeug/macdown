@@ -680,10 +680,12 @@ RawNoteBlock =  ( !BlankLine OptionallyIndentedLine )+
 # Addon for math
 # either do nothing with math (pmh_NO_TYPE) or highlight it as code (pmh_CODE)
 # so that there is no wrong highlighing within MATH
-Math = Dollar1Math | Dollar2Math
+Math = Dollar1Math | Dollar2Math | ParenMath | BracketMath
 
 Dollar1Math = < "$" ( !'$' . )+ "$" > { ADD(elem(pmh_CODE)); }
 Dollar2Math = < "$$" (!'$' .)+ "$$" > { ADD(elem(pmh_CODE)); }
+ParenMath   = < "\\\\(" (!"\\\\)" .)+ "\\\\)" > { ADD(elem(pmh_CODE)); }
+BracketMath = < "\\\\[" (!"\\\\]" .)+ "\\\\]" > { ADD(elem(pmh_CODE)); }
 
 %%
 
